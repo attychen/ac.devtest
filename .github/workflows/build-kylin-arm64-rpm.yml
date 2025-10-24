@@ -9,17 +9,31 @@ jobs:
       image: rockylinux:9
       options: --user root --platform linux/arm64/v8
     steps:
-      # ① 正确修复 repo 文件
-      - name: fix repo
+      # ① 创建 Rocky 9 默认源（最小镜像可能为空）
+      - name: create default repos
         run: |
-          sed -i 's/^mirrorlist=/#mirrorlist=/g' /etc/yum.repos.d/*.repo
-          sed -i 's|^#baseurl=http|baseurl=http|g' /etc/yum.repos.d/*.repo
+          cat >/etc/yum.repos.d/rocky.repo <<'EOF'
+          [baseos]
+          name=Rocky Linux 9 - BaseOS
+          baseurl=http://dl.rockylinux.org/vault/rocky/9/BaseOS/$basearch/os/
+          enabled=1
+          gpgcheck=0
+          [appstream]
+          name=Rocky Linux 9 - AppStream
+          baseurl=http://dl.rockylinux.org/vault/rocky/9/AppStream/$basearch/os/
+          enabled=1
+          gpgcheck=0
+          [crb]
+          name=Rocky Linux 9 - CRB
+          baseurl=http://dl.rockylinux.org/vault/rocky/9/CRB/$basearch/os/
+          enabled=1
+          gpgcheck=0
+          EOF
 
-      # ② 启用 epel & crb
-      - name: enable epel & crb
+      # ② 启用 EPEL
+      - name: enable epel
         run: |
           dnf install -y epel-release
-          dnf config-manager --set-enabled crb
 
       # ③ 安装下载器
       - name: install utils
