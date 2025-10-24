@@ -6,7 +6,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: kylin/kylin:v10-sp3-aarch64   # 官方 ARM64 镜像
+      image: rockylinux:9          # 官方镜像，arm64 标签存在
       options: --user root --platform linux/arm64/v8
     steps:
       - name: fix repo
@@ -18,6 +18,9 @@ jobs:
         run: |
           dnf install -y epel-release
           dnf config-manager --set-enabled crb
+
+      - name: install utils
+        run: dnf install -y 'dnf-command(download)'
 
       - name: download mosquitto
         run: |
