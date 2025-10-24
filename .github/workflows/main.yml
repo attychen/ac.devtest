@@ -1,0 +1,24 @@
+name: build-x86-deb
+
+on: workflow_dispatch        # 手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest   # GitHub 提供 x86_64 环境
+    steps:
+      - name: install deps
+        run: |
+          sudo apt update
+          sudo apt-get install -y apt-rdepends dpkg-dev
+      - name: download packages
+        run: |
+          mkdir repo && cd repo
+          apt-get download mosquitto-clients
+          apt-rdepends mosquitto-clients | grep -v "^ " | xargs -i apt-get download {}
+          dpkg-scanpackages . | gzip -9c > Packages.gz
+          tar czf mosquitto-clients-x86_64.tar.gz *.deb Packages.gz
+      - name: upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mosquitto-clients-x86_64
+          path: repo/mosquitto-clients-x86_64.tar.gz
