@@ -1,34 +1,44 @@
 name: build-kylin-rpm
 
-on: workflow_dispatch
+on: workflow_dispatch          # 手动触发
 
 jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: centos:8
+      image: rockylinux:9      # ① 用 Rocky 9（CentOS 8 已死）
       options: --user root
     steps:
-      - name: fix CentOS 8 repo
+      # ② 修复 Rocky 9 自带源（GitHub Actions 里偶尔也解析失败）
+      - name: fix repos if needed
         run: |
-          sed -i 's|mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-*
-          sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+          sed -i 's|^#baseurl=http|baseurl=http|g' /etc/yum.repos.d/*.repo
+          sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/*.repo
 
+      # ③ 一次装好 EPEL + crb（Rocky 9 的 PowerTools 新名字）
+      - name: enable epel & crb
+        run: |
+          dnf install -y epel-release
+          dnf config-manager --set-enabled crb
+
+      # ④ 装下载器
       - name: install utils
-        run: yum install -y yum-utils
+        run: dnf install -y 'dnf-command(download)'
 
+      # ⑤ 抓包（含依赖）
       - name: download mosquitto + deps
         run: |
           mkdir /rpm && cd /rpm
-          yumdownloader --resolve mosquitto
+          dnf download --resolve mosquitto
 
+      # ⑥ 打包 & 上传
       - name: pack
         run: |
           cd /rpm
-          tar czf mosquitto-kylin-compatible-x86_64.tar.gz *.rpm
+          tar czf mosquitto-kylin10-x86_64.tar.gz *.rpm
 
       - name: upload
         uses: actions/upload-artifact@v4
         with:
-          name: mosquitto-kylin-compatible-x86_64
-          path: /rpm/mosquitto-kylin-compatible-x86_64.tar.gz
+          name: mosquitto-kylin10-x86_64
+          path: /rpm/mosquitto-kylin10-x86_64.tar.gz
