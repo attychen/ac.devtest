@@ -6,20 +6,27 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: centos:8          # ← 换成存在的镜像
+      image: centos:8
       options: --user root
     steps:
-      - name: install utils
+      - name: fix CentOS 8 repo
         run: |
-          yum install -y yum-utils
+          sed -i 's|mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-*
+          sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+
+      - name: install utils
+        run: yum install -y yum-utils
+
       - name: download mosquitto + deps
         run: |
           mkdir /rpm && cd /rpm
           yumdownloader --resolve mosquitto
+
       - name: pack
         run: |
           cd /rpm
           tar czf mosquitto-kylin-compatible-x86_64.tar.gz *.rpm
+
       - name: upload
         uses: actions/upload-artifact@v4
         with:
