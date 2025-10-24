@@ -1,0 +1,36 @@
+name: build-kylin-arm64-rpm
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: kylin/kylin:v10-sp3-aarch64   # 官方 ARM64 镜像
+      options: --user root --platform linux/arm64/v8
+    steps:
+      - name: fix repo
+        run: |
+          sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/*.repo
+          sed -i 's|^#baseurl=http|baseurl=http|g' /etc/yum.repos.d/*.repo
+
+      - name: enable epel & crb
+        run: |
+          dnf install -y epel-release
+          dnf config-manager --set-enabled crb
+
+      - name: download mosquitto
+        run: |
+          mkdir /rpm && cd /rpm
+          dnf download --resolve mosquitto
+
+      - name: pack
+        run: |
+          cd /rpm
+          tar czf mosquitto-kylin10-aarch64.tar.gz *.rpm
+
+      - name: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: mosquitto-kylin10-aarch64
+          path: /rpm/mosquitto-kylin10-aarch64.tar.gz
