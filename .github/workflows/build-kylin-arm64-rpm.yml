@@ -6,27 +6,32 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: rockylinux:9          # 官方镜像，arm64 标签存在
+      image: rockylinux:9
       options: --user root --platform linux/arm64/v8
     steps:
+      # ① 正确修复 repo 文件
       - name: fix repo
         run: |
-          sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/*.repo
+          sed -i 's/^mirrorlist=/#mirrorlist=/g' /etc/yum.repos.d/*.repo
           sed -i 's|^#baseurl=http|baseurl=http|g' /etc/yum.repos.d/*.repo
 
+      # ② 启用 epel & crb
       - name: enable epel & crb
         run: |
           dnf install -y epel-release
           dnf config-manager --set-enabled crb
 
+      # ③ 安装下载器
       - name: install utils
         run: dnf install -y 'dnf-command(download)'
 
+      # ④ 抓包（含依赖）
       - name: download mosquitto
         run: |
           mkdir /rpm && cd /rpm
           dnf download --resolve mosquitto
 
+      # ⑤ 打包 & 上传
       - name: pack
         run: |
           cd /rpm
