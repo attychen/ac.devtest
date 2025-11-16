@@ -1,43 +1,23 @@
-name: Export Missing KubeSphere Images
+name: Build kubectl v1.23.17
 on:
   workflow_dispatch:
 
 jobs:
-  export:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
-      - name: Pull & Export
-        run: |
-          # 用能拉到的源
-          docker pull kubesphere/kubectl:v1.23.17
-          docker pull registry.cn-beijing.aliyuncs.com/prometheus/kube-state-metrics:v2.3.0
-          docker pull quay.nju.edu.cn/coreos/kube-state-metrics:v2.3.0
-
-          docker save kubesphere/kubectl:v1.23.17 \
-                      registry.cn-beijing.aliyuncs.com/prometheus/kube-state-metrics:v2.3.0 \
-                      quay.nju.edu.cn/coreos/kube-state-metrics:v2.3.0 \
-                      -o missing-3.tar
-
-          pigz -9 missing-3.tar
-          ls -lh missing-3.tar.gz
-
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v1
+      - uses: actions/checkout@v3
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
         with:
-          tag_name: missing-v3.4.1-3images
-          name: KubeSphere Missing 3 Images
-          body: |
-            国内节点导入命令：
-            ```bash
-            ctr -n k8s.io image import missing-3.tar.gz
-            # 打官方标签
-            for img in kubesphere/kubectl:v1.23.17 \
-                       registry.cn-beijing.aliyuncs.com/prometheus/kube-state-metrics:v2.3.0 \
-                       quay.nju.edu.cn/coreos/kube-state-metrics:v2.3.0; do
-              base=$(basename "$img")
-              ctr -n k8s.io image tag "$img" "docker.io/kubesphere/$base"
-            done
-            ```
-          files: missing-3.tar.gz
-          draft: false
-          prerelease: false
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & Push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/kubectl:v1.23.17
