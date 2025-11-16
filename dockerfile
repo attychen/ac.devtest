@@ -1,9 +1,14 @@
-# 1. 官方 kubectl（GitHub 可拉）
+# 1. 官方 kubectl 二进制（GitHub 可拉）
 FROM alpine:3.16 AS kubectl
 ARG KUBECTL_VERSION=v1.23.17
 RUN apk add --no-cache curl && \
     curl -L https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl
 
-# 2. 南大镜像站 kube-state-metrics（GitHub 可拉）
-FROM quay.nju.edu.cn/coreos/kube-state-metrics:v2.3.0 AS ksm-nju
+# 2. 官方 kube-state-metrics 二进制（GitHub Release 可拉）
+FROM alpine:3.16 AS ksm
+ARG KSM_VERSION=v2.3.0
+RUN apk add --no-cache curl && \
+    curl -L https://github.com/kubernetes/kube-state-metrics/releases/download/${KSM_VERSION}/kube-state-metrics-${KSM_VERSION}-linux-amd64.tar.gz | \
+    tar -xz -C /usr/local/bin --strip-components=1
+ENTRYPOINT ["/usr/local/bin/kube-state-metrics"]
