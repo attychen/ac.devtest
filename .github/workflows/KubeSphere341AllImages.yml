@@ -1,0 +1,69 @@
+name: Export KubeSphere 3.4.1 All Images
+on:
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install containerd
+        run: |
+          sudo apt-get update && sudo apt-get install -y containerd pigz
+
+      - name: Pull & Export All Images
+        run: |
+          set -e
+          # 国内镜像源，GitHub Actions 可直连
+          REG="registry.cn-beijing.aliyuncs.com/kubesphereio"
+          PROM="registry.cn-beijing.aliyuncs.com/prometheus"
+
+          images=(
+            $REG/ks-installer:v3.4.1
+            $REG/ks-apiserver:v3.4.1
+            $REG/ks-console:v3.4.1
+            $REG/ks-controller-manager:v3.4.1
+            $REG/kube-state-metrics:v2.3.0
+            $REG/node-exporter:v1.3.1
+            $REG/prometheus-operator:v0.55.1
+            $REG/prometheus-config-reloader:v0.55.1
+            $REG/prometheus:v2.39.1
+            $REG/notification-manager-operator:v2.3.0
+            $REG/notification-manager:v2.3.0
+            $REG/notification-tenant-sidecar:v3.2.0
+            $REG/kube-rbac-proxy:v0.11.0
+            $REG/configmap-reload:v0.7.1
+            $REG/pause:3.9
+            $REG/pause:3.8
+            registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.8
+            $PROM/kube-state-metrics:v2.3.0
+            # 缺 kubectl 用官方源（GitHub 可拉）
+            kubesphere/kubectl:v1.23.17
+          )
+
+          mkdir -p images
+          for img in "${images[@]}"; do
+            echo ">>> pulling $img"
+            sudo ctr image pull "$img"
+            # 统一打 docker.io/kubesphere/xxx 标签（让 KubeSphere 认识）
+            base=$(basename "$img")
+            [[ "$img" != docker.io/* ]] && sudo ctr image tag "$img" "docker.io/kubesphere/$base" || true
+          done
+
+          echo ">>> exporting all images"
+          sudo ctr image export -o ks-v341-images.tar $(sudo ctr image list -q | grep -E 'kubesphere|prometheus|pause')
+          pigz -9 ks-v341-images.tar     # 压缩
+          ls -lh ks-v341-images.tar.gz
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v3.4.1-images
+          name: KubeSphere 3.4.1 Offline Images
+          body: |
+            国内网络可用，导入命令：
+            ```bash
+            ctr -n k8s.io image import ks-v341-images.tar.gz
+            ```
+          files: ks-v341-images.tar.gz
+          draft: false
+          prerelease: false
