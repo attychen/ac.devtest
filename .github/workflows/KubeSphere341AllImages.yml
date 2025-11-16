@@ -1,31 +1,38 @@
-name: Build Missing Images
+name: Export Missing Binaries
 on:
   workflow_dispatch:
 
 jobs:
-  build:
+  export:
     runs-on: ubuntu-latest
     permissions:
       packages: write
     steps:
-      - uses: actions/checkout@v3
+      - name: Download官方二进制
+        run: |
+          # 官方 Release 直链（GitHub 可拉）
+          curl -fsSL https://dl.k8s.io/release/v1.23.17/bin/linux/amd64/kubectl -o kubectl
+          chmod +x kubectl
+          curl -fsSL https://github.com/kubernetes/kube-state-metrics/releases/download/v2.3.0/kube-state-metrics-v2.3.0-linux-amd64.tar.gz | \
+            tar -xz --strip-components=1
+          chmod +x kube-state-metrics
       - name: Log in to GHCR
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build & Push kubectl
+      - name: Push kubectl binary as image
         uses: docker/build-push-action@v4
         with:
           context: .
-          target: kubectl
+          file: Dockerfile.kubectl
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/kubectl:v1.23.17
-      - name: Build & Push kube-state-metrics
+      - name: Push kube-state-metrics binary as image
         uses: docker/build-push-action@v4
         with:
           context: .
-          target: ksm
+          file: Dockerfile.ksm
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/kube-state-metrics:v2.3.0
