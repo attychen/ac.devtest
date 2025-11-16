@@ -1,0 +1,3 @@
+FROM scratch
+COPY kube-state-metrics /usr/local/bin/kube-state-metrics
+ENTRYPOINT ["/usr/local/bin/kube-state-metrics"]
