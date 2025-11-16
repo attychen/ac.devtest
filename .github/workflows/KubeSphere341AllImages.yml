@@ -22,17 +22,10 @@ jobs:
           target: kubectl
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/kubectl:v1.23.17
-      - name: Build & Push kube-state-metrics (cheng)
+      - name: Build & Push kube-state-metrics (nju)
         uses: docker/build-push-action@v4
         with:
           context: .
-          target: ksm-cheng
+          target: ksm-nju
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/kube-state-metrics:v2.3.0-cheng
-      - name: Build & Push kube-state-metrics (bitnami)
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          target: ksm-bitnami
-          push: true
-          tags: ghcr.io/${{ github.repository_owner }}/kube-state-metrics:v2.3.0-bitnami
+          tags: ghcr.io/${{ github.repository_owner }}/kube-state-metrics:v2.3.0-nju
